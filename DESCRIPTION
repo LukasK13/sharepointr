@@ -1,0 +1,15 @@
+Package: sharepointr
+Type: Package
+Title: Connect to a SharePoint list
+Version: 1.0.0
+Author: Lukas Klass
+Maintainer: Lukas Klass <yourself@somewhere.net>
+Description: This package allows to connect to a
+    local SharePoint server or Office365 SharePoint
+    instance in order to read and write lists via
+    the SharePoint RESTful API.
+Imports: httr, xml2
+License: None
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.1
