@@ -20,9 +20,9 @@
 #' shall be established, False if a connection to SharePoint server
 #' shall be established.
 #' @examples
-#' sp_connection("https://your.sharepoint.server/subpage1/", "YourUsername", "YourPassword", Office365 = F)
+#' sp_con = sp_connection("https://your.sharepoint.server/subpage1/", "YourUsername", "YourPassword", Office365 = F)
 #' @examples
-#' sp_connection("https://yourdomain.sharepoint.com", "YourUsername", "YourPassword", Office365 = T)
+#' sp_con = sp_connection("https://yourdomain.sharepoint.com", "YourUsername", "YourPassword", Office365 = T)
 #' @export
 sp_connection <- function(Address, Username = NULL, Password = NULL, credentialFile = NULL, Office365 = T) {
   if (is.null(Username) | is.null(Password)) { # No username or password is given
