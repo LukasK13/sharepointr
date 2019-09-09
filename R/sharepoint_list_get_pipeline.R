@@ -14,8 +14,8 @@ sp_list <- function(con, listName = NULL, listID = NULL) {
   if (!"sp_connection" %in% class(con)) stop("Invalid sharepoint connection.") # Check class of connection object
   if ((is.null(listName) && is.null(listID)) || (!is.null(listName) && !is.null(listID))) stop("Either listName or listID must be provided")
   response = sp_getListColumns(con, listName = listName, listID = listID, raw = T, hidden = T)
-  columnNamesInternal = response$content$d$results$InternalName # Extract internal column names
-  columnNames = response$content$d$results$Title # Extract external column names
+  columnNamesInternal = if (con$Office365) response$content$value$InternalName else response$content$d$results$InternalName # Extract internal column names
+  columnNames = if (con$Office365) response$content$value$Title else response$content$d$results$Title # Extract external column names
   table = list(con = con, columns = list(columnNamesInternal = columnNamesInternal, columnNames = columnNames), listName = listName, listID = listID, op = list()) # Build list connection object
   class(table) = "sp_list_connection" # Set class
   return(table) # Return list connection object
@@ -218,18 +218,18 @@ sp_collect = function(table, n = Inf, skip = NULL, expand = T, verbose = T) {
   if (response$status_code == 200) {
     data = data.frame()
     repeat({
-      if (is.null(response$content$d$results$FieldValuesAsText) || !expand) {
-        cols = names(response$content$d$results)[which(unname(unlist(lapply(response$content$d$results, typeof))) %in% c("character", "numeric", "integer", "double", "logical"))]
+      if (is.null(if (con$Office365) response$content$value$FieldValuesAsText else response$content$d$results$FieldValuesAsText) || !expand) {
+        cols = names(if (con$Office365) response$content$value else response$content$d$results)[which(unname(unlist(lapply(if (con$Office365) response$content$value else response$content$d$results, typeof))) %in% c("character", "numeric", "integer", "double", "logical"))]
         cols = table$columns$columnNamesInternal[table$columns$columnNamesInternal %in% cols]
-        data_temp = as.data.frame(response$content$d$results[cols])
+        data_temp = as.data.frame(if (con$Office365) response$content$value[cols] else response$content$d$results[cols])
         colnames(data_temp) = table$columns$columnNames[table$columns$columnNamesInternal %in% colnames(data_temp)]
       } else {
-        items = unname(unlist(response$content$d$results$FieldValuesAsText))
+        items = unname(unlist(if (con$Office365) response$content$value$FieldValuesAsText else response$content$d$results$FieldValuesAsText))
         data_temp = Reduce(rbind, lapply(items, function(item) {
           response = sp_request(table$con, item)
           if (response$status_code == 200) {
-            names(response$content$d) = gsub("_x005f", "", names(response$content$d))
-            data = as.data.frame(t(data.frame(unlist(response$content$d[table$columns$columnNamesInternal]))))
+            names(if (con$Office365) response$content$value else response$content$d$results) = gsub("_x005f", "", names(if (con$Office365) response$content$value else response$content$d$results))
+            data = as.data.frame(t(data.frame(unlist(if (con$Office365) response$content$value[table$columns$columnNamesInternal] else response$content$d$results[table$columns$columnNamesInternal]))))
             rownames(data) = NULL
             colnames(data) = table$columns$columnNames[table$columns$columnNamesInternal %in% colnames(data)]
             return(data)
@@ -238,8 +238,8 @@ sp_collect = function(table, n = Inf, skip = NULL, expand = T, verbose = T) {
       }
       data = rbind(data, data_temp)
       if (!is.infinite(n) && nrow(data) >= n) break
-      if (!is.null(response$content$d$`__next`)) {
-        response = sp_request(table$con, response$content$d$`__next`)
+      if (!is.null(if(con$Office365) response$content$odata.nextLink else response$content$d$`__next`)) {
+        response = sp_request(table$con, if(con$Office365) response$content$odata.nextLink else response$content$d$`__next`)
         if (response$status_code != 200) stop("Invalid response.")
       } else {
         break
