@@ -35,22 +35,21 @@ sp_connection <- function(Address, Username = NULL, Password = NULL, credentialF
     }
   }
   if (Office365) { # access sharepoint online
-    Address = gsub("https://", "", Address) # remove https:// from address
-    Address_O365 = regmatches(Address, regexpr("[[:alnum:]]+.sharepoint.com", Address))
+    Address_base = regmatches(Address, regexpr("[[:alnum:]]{1,}\\.sharepoint\\.com", Address)) # remove https:// from address
     request = suppressWarnings(readLines(system.file("saml.xml", package = "sharepointr"))) # read XML soap envelope
     request = gsub("\\{Username\\}", Username, request) # paste username into XML form
     request = gsub("\\{Password\\}", Password, request) # paste password into XML form
-    request = gsub("\\{Address\\}", Address_O365, request) # paste address into XML form
+    request = gsub("\\{Address\\}", Address_base, request) # paste address into XML form
     response = httr::POST(url = "https://login.microsoftonline.com/extSTS.srf", body = request) # request security token from microsoft online
     if (response$status_code != 200) stop("Receiving security token failed.") # Check if request was successful
     content = as_list(read_xml(rawToChar(response$content))) # decode response content
     token = as.character(content$Envelope$Body$RequestSecurityTokenResponse$RequestedSecurityToken$BinarySecurityToken) # extract security token
-    response = httr::POST(paste0("https://", Address_O365, "/_forms/default.aspx?wa=wsignin1.0"), body = token, add_headers(Host = Address_O365)) # post security token to sharepoint online
+    response = httr::POST(paste0("https://", Address_base, "/_forms/default.aspx?wa=wsignin1.0"), body = token, add_headers(Host = Address_base)) # post security token to sharepoint online
     if (response$status_code != 200) stop("Receiving access cookies failed.") # Check if request was successful
     cookie = paste0("rtFa=", response$cookies$value[response$cookies$name %in% "rtFa"],
                     "; FedAuth=", response$cookies$value[response$cookies$name %in% "FedAuth"]) # concatenate cookies for header
 
-    con = list(Username = Username, Address = Address, Cookie = cookie, Office365 = T) # create connection object
+    con = list(Username = Username, Address = paste0(Address, if (length(grep("/$", Address)) == 1) "_api/" else "/_api/"), Cookie = cookie, Office365 = T) # create connection object
   } else { # acces sharepoint server
     con = list(Username = Username, Address = paste0(Address, if (length(grep("/$", Address)) == 1) "_api/" else "/_api/"),
                Password = Password, Office365 = F) # create connection object
