@@ -1,10 +1,3 @@
-# listName = "Leckageprüfung (Beta)"
-# data = list(`Stack-ID` = "NM5-222-280", Title = "Test",
-#                   `p(t = 0 s) AIR` = 1200, `p(t = 60 s) AIR` = 1100, `p(t = 120 s)` = 1050,
-#                   `p(t = 0 s) H2` = 1200, `p(t = 60 s) H2` = 1150, `p(t = 120 s) H2` = 1050,
-#                   `p(t = 0 s) KM` = 1200, `p(t = 60 s) KM` = 1200, `p(t = 120 s) KM` = 900,
-#                   `p(t = 0 s) AIR_H2` = 1200, `p(t = 60 s) AIR_H2` = 1150, `p(t = 120 s) AIR_H2` = 1050)
-
 #' Write data to a SharePoint list
 #'
 #' This method allows to write data to a SharePoint
@@ -34,7 +27,8 @@ sp_writeListData <- function(con, listName = NULL, listID = NULL, data) {
   if (!"sp_connection" %in% class(con)) stop("Invalid sharepoint connection.") # Check class of connection object
   if ((is.null(listName) && is.null(listID)) || (!is.null(listName) && !is.null(listID))) stop("Either listName or listID must be provided")
   meta = sp_getListMetadata(con, listName = listName, listID = listID) # Collect metadata of the list
-  fields = sp_getListColumns(con, listName = listName, listID = listID, raw = T)$content$d$results # collect field information of the list
+  fields = sp_getListColumns(con, listName = listName, listID = listID, raw = T)$content # collect field information of the list
+  fields = if (con$Office365) fields$value else fields$d$results
   if (!all(names(data) %in% fields$Title)) stop("Unknown columns provided.") # Check if all provided columns can be translated
   names(data) = unlist(lapply(names(data), function(x) { # Loop through all column names of the provided data
     return(fields$InternalName[fields$Title %in% x]) # Return translated internal name
