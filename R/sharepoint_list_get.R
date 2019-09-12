@@ -61,7 +61,7 @@ sp_getListColumns <- function(con, listName = NULL, listID = NULL, raw = F, hidd
   if ((is.null(listName) && is.null(listID)) || (!is.null(listName) && !is.null(listID))) stop("Either listName or listID must be provided")
   request = URLencode(paste0("lists/", if (!is.null(listName)) paste0("getbytitle('", listName) else paste0("getbyid('", listID), "')/fields", if (!hidden) "?$filter=Hidden eq false and ReadOnlyField eq false"))
   response = sp_request(con, request)
-  return(if (raw) response else sp_changeEscaping(if (con$Username) response$content$value$Title else response$content$d$results$Title))
+  return(if (raw) response else sp_changeEscaping(if (con$Office365) response$content$value$Title else response$content$d$results$Title))
 }
 
 #' Read data from a SharePoint list
