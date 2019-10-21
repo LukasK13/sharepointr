@@ -23,6 +23,6 @@ sp_users <- function(con, ..., .filter = NULL) {
   }
   request = paste0("web/siteusers", if (!is.null(.filter)) paste0("?$filter=", URLencode(.filter))) # Conactenate request URL
   response = sp_request(con, request) # Request list column names
-  data = as.data.frame(response$content$d$results[which(unname(unlist(lapply(response$content$d$results, typeof))) != "list")]) # Convert response to dataframe
+  data = as.data.frame((if (con$Office365) response$content$value else response$content$d$results)[which(unname(unlist(lapply(if (con$Office365) response$content$value else response$content$d$results, typeof))) != "list")]) # Convert response to dataframe
   return(data) # Return list connection object
 }

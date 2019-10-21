@@ -13,7 +13,14 @@
 #' @export
 sp_getLists <- function(con, raw = F) {
   response = sp_request(con, "lists")
-  return(if (raw) response else sp_changeEscaping(response$content$d$results$Title))
+  if (raw) {
+    return(response)
+  }
+
+  names = sp_changeEscaping(if (con$Office365) response$content$value$Title else response$content$d$results$Title)
+  ids = sp_changeEscaping(if (con$Office365) response$content$value$Id else response$content$d$results$Id)
+  names(ids) = names
+  return(ids)
 }
 
 #' Get metadata of a SharePoint list
@@ -33,7 +40,7 @@ sp_getListMetadata <- function(con, listName = NULL, listID = NULL, raw = F) {
   if ((is.null(listName) && is.null(listID)) || (!is.null(listName) && !is.null(listID))) stop("Either listName or listID must be provided")
   request = URLencode(paste0("lists/", if (!is.null(listName)) paste0("getbytitle('", listName) else paste0("getbyid('", listID), "')"))
   response = sp_request(con, request)
-  return(if (raw) response else response$content$d)
+  return(if (raw) response else (if (con$Office365) response$content else response$content$d))
 }
 
 #' List available SharePoint list columns
@@ -54,7 +61,7 @@ sp_getListColumns <- function(con, listName = NULL, listID = NULL, raw = F, hidd
   if ((is.null(listName) && is.null(listID)) || (!is.null(listName) && !is.null(listID))) stop("Either listName or listID must be provided")
   request = URLencode(paste0("lists/", if (!is.null(listName)) paste0("getbytitle('", listName) else paste0("getbyid('", listID), "')/fields", if (!hidden) "?$filter=Hidden eq false and ReadOnlyField eq false"))
   response = sp_request(con, request)
-  return(if (raw) response else sp_changeEscaping(response$content$d$results$Title))
+  return(if (raw) response else sp_changeEscaping(if (con$Office365) response$content$value$Title else response$content$d$results$Title))
 }
 
 #' Read data from a SharePoint list
@@ -71,14 +78,14 @@ sp_readListData <- function(con, listName = NULL, listID = NULL, expand = F) {
   if ((is.null(listName) && is.null(listID)) || (!is.null(listName) && !is.null(listID))) stop("Either listName or listID must be provided")
   response = sp_getListColumns(con, listName = listName, listID = listID, raw = T, hidden = F)
   if (response$status_code == 200) {
-    columnNamesInternal = response$content$d$results$InternalName
-    columnNames = response$content$d$results$Title
+    columnNamesInternal = if (con$Office365) response$content$value$InternalName else response$content$d$results$InternalName
+    columnNames = if (con$Office365) response$content$value$Title else response$content$d$results$Title
     response = sp_request(con, URLencode(paste0("lists/", if (!is.null(listName)) paste0("getbytitle('", listName) else paste0("getbyid('", listID), "')/items")))
     if (response$status_code == 200) {
       data = data.frame()
       repeat({
         if (expand) {
-          items = unname(unlist(response$content$d$results$FieldValuesAsText))
+          items = unname(unlist(if (con$Office365) response$content$value$FieldValuesAsText else response$content$d$results$FieldValuesAsText))
           data_temp = Reduce(rbind, lapply(items, function(item) {
             response = sp_request(con, item)
             if (response$status_code == 200) {
@@ -90,14 +97,14 @@ sp_readListData <- function(con, listName = NULL, listID = NULL, expand = F) {
             }
           }))
         } else {
-          cols = names(response$content$d$results)[which(unname(unlist(lapply(response$content$d$results, typeof))) == "character")]
+          cols = names(if (con$Office365) response$content$value else response$content$d$results)[which(unname(unlist(lapply(if (con$Office365) response$content$value else response$content$d$results, typeof))) == "character")]
           cols = columnNamesInternal[columnNamesInternal %in% cols]
-          data_temp = as.data.frame(response$content$d$results[cols])
+          data_temp = as.data.frame(if (con$Office365) response$content$value[cols] else response$content$d$results[cols])
           colnames(data_temp) = columnNames[columnNamesInternal %in% colnames(data_temp)]
         }
         data = rbind(data, data_temp)
-        if (!is.null(response$content$d$`__next`)) {
-          response = sp_request(con, response$content$d$`__next`)
+        if (!is.null(if(con$Office365) response$content$odata.nextLink else response$content$d$`__next`)) {
+          response = sp_request(con, if(con$Office365) response$content$odata.nextLink else response$content$d$`__next`)
           if (response$status_code != 200) stop("Invalid response.")
         } else {
           break
