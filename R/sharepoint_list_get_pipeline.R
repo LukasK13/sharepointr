@@ -69,7 +69,7 @@ sp_filter <- function(table, ..., .filter = NULL) {
       command = sp_buildFilter(command)
       return(command)
     })
-    table$op[[length(table$op) + 1]] = URLencode(paste0("$filter=", paste0(unlist(command), collapse = "&"))) # Add final filter command to the list of operations
+    table$op[[length(table$op) + 1]] = URLencode(paste0("$filter=", paste0("(", unlist(command), ")", collapse = "and"))) # Add final filter command to the list of operations
   } else {
     table$op[[length(table$op) + 1]] = URLencode(paste0("$filter=", .filter)) # Add final filter command to the list of operations
   }
@@ -220,9 +220,14 @@ sp_collect = function(table, n = Inf, skip = NULL, expand = T, verbose = T) {
     repeat({
       if (is.null(if (table$con$Office365) response$content$value$FieldValuesAsText else response$content$d$results$FieldValuesAsText) || !expand) {
         cols = names(if (table$con$Office365) response$content$value else response$content$d$results)[which(unname(unlist(lapply(if (table$con$Office365) response$content$value else response$content$d$results, typeof))) %in% c("character", "numeric", "integer", "double", "logical"))]
-        cols = table$columns$columnNamesInternal[table$columns$columnNamesInternal %in% cols]
         data_temp = as.data.frame(if (table$con$Office365) response$content$value[cols] else response$content$d$results[cols])
-        colnames(data_temp) = table$columns$columnNames[table$columns$columnNamesInternal %in% colnames(data_temp)]
+        colnames(data_temp) = gsub("OData_", "", colnames(data_temp))
+        data_temp = data_temp[,colnames(data_temp) %in% table$columns$columnNamesInternal]
+        for (col in colnames(data_temp)) {
+          if (col %in% table$columns$columnNamesInternal) {
+            colnames(data_temp)[colnames(data_temp) == col] = table$columns$columnNames[table$columns$columnNamesInternal %in% col]
+          }
+        }
       } else {
         items = unname(unlist(if (table$con$Office365) response$content$value$FieldValuesAsText else response$content$d$results$FieldValuesAsText))
         data_temp = Reduce(rbind, lapply(items, function(item) {

@@ -19,12 +19,15 @@
 #' @param Office365 True (default) if a connection to SharePoint online
 #' shall be established, False if a connection to SharePoint server
 #' shall be established.
+#' @param acceptLanguage The locale to be used for retrieving information.
+#' Default value is en and can be defined as in
+#' https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language
 #' @examples
-#' sp_con = sp_connection("https://your.sharepoint.server/subpage1/", "YourUsername", "YourPassword", Office365 = F)
+#' sp_con = sp_connection("https://your.sharepoint.server/subpage1/", "YourUsername", "YourPassword", Office365 = F, acceptLanguage = "en")
 #' @examples
 #' sp_con = sp_connection("https://yourdomain.sharepoint.com", "YourUsername", "YourPassword", Office365 = T)
 #' @export
-sp_connection <- function(Address, Username = NULL, Password = NULL, credentialFile = NULL, Office365 = T) {
+sp_connection <- function(Address, Username = NULL, Password = NULL, credentialFile = NULL, Office365 = T, acceptLanguage = "en") {
   if (is.null(Username) | is.null(Password)) { # No username or password is given
     if (is.null(credentialFile)) { # No credential file is given
       stop("Not enough arguments.") # stop and show error message
@@ -49,10 +52,10 @@ sp_connection <- function(Address, Username = NULL, Password = NULL, credentialF
     cookie = paste0("rtFa=", response$cookies$value[response$cookies$name %in% "rtFa"],
                     "; FedAuth=", response$cookies$value[response$cookies$name %in% "FedAuth"]) # concatenate cookies for header
 
-    con = list(Username = Username, Address = paste0(Address, if (length(grep("/$", Address)) == 1) "_api/" else "/_api/"), Cookie = cookie, Office365 = T) # create connection object
+    con = list(Username = Username, Address = paste0(Address, if (length(grep("/$", Address)) == 1) "_api/" else "/_api/"), Cookie = cookie, Office365 = T, acceptLanguage = acceptLanguage) # create connection object
   } else { # acces sharepoint server
     con = list(Username = Username, Address = paste0(Address, if (length(grep("/$", Address)) == 1) "_api/" else "/_api/"),
-               Password = Password, Office365 = F) # create connection object
+               Password = Password, Office365 = F, acceptLanguage = acceptLanguage) # create connection object
   }
   class(con) = "sp_connection" # set class of connection object
   return(con) # return connection object
@@ -96,7 +99,7 @@ sp_request <- function(con, request, verb = "GET", json = T, body = NULL) {
   } else { # request data from SharePoint server
     if (tolower(verb) == "get") {
       response = httr::GET(request, httr::authenticate(con$Username, con$Password, "ntlm"),
-                           httr::add_headers(accept = if (json) "application/json;odata=verbose" else "application/atom+xml")) # send request
+                           httr::add_headers(accept = if (json) "application/json;odata=verbose" else "application/atom+xml", `accept-language` = con$acceptLanguage)) # send request
     } else if (tolower(verb) == "post") {
       if (length(grep("contextinfo$", request)) == 0) {
         digest = sp_getRequestDigest(con)
