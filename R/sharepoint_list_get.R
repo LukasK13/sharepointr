@@ -84,7 +84,7 @@ sp_readListData <- function(con, listName = NULL, listID = NULL, expand = F) {
     if (response$status_code == 200) {
       data = data.frame()
       repeat({
-        if (expand) {
+        if (expand && !is.null(unname(unlist(if (con$Office365) response$content$value$FieldValuesAsText else response$content$d$results$FieldValuesAsText)))) {
           items = unname(unlist(if (con$Office365) response$content$value$FieldValuesAsText else response$content$d$results$FieldValuesAsText))
           data_temp = Reduce(rbind, lapply(items, function(item) {
             response = sp_request(con, item)
