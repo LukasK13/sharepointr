@@ -47,11 +47,9 @@ sp_connection <- function(Address, Username = NULL, Password = NULL, credentialF
     if (response$status_code != 200) stop("Receiving security token failed.") # Check if request was successful
     content = as_list(read_xml(rawToChar(response$content))) # decode response content
     token = as.character(content$Envelope$Body$RequestSecurityTokenResponse$RequestedSecurityToken$BinarySecurityToken) # extract security token
-    response = httr::POST(paste0("https://", Address_base, "/_forms/default.aspx?wa=wsignin1.0"), body = token, add_headers(Host = Address_base)) # post security token to sharepoint online
+    response = httr::POST(paste0("https://", Address_base, "/_forms/default.aspx?wa=wsignin1.0"), body = token, httr::add_headers(Host = Address_base)) # post security token to sharepoint online
     if (response$status_code != 200) stop("Receiving access cookies failed.") # Check if request was successful
-    cookie = paste0("rtFa=", response$cookies$value[response$cookies$name %in% "rtFa"],
-                    "; FedAuth=", response$cookies$value[response$cookies$name %in% "FedAuth"]) # concatenate cookies for header
-
+    cookie = list(rtFa = response$cookies$value[response$cookies$name %in% "rtFa"], FedAuth = response$cookies$value[response$cookies$name %in% "FedAuth"]) # Extract authentication cookies
     con = list(Username = Username, Address = paste0(Address, if (length(grep("/$", Address)) == 1) "_api/" else "/_api/"), Cookie = cookie, Office365 = T, acceptLanguage = acceptLanguage) # create connection object
   } else { # acces sharepoint server
     con = list(Username = Username, Address = paste0(Address, if (length(grep("/$", Address)) == 1) "_api/" else "/_api/"),
@@ -87,11 +85,12 @@ sp_request <- function(con, request, verb = "GET", json = T, body = NULL) {
   request = URLencode(if (length(grep(con$Address, request)) == 1) request else paste0(con$Address, request)) # create valid rquest url and encode it
   if (con$Office365) { # request data from SharePoint online
     if (tolower(verb) == "get") {
-      response = httr::GET(request, add_headers(Cookie = con$Cookie, accept = if (json) "application/json;odata=verbose" else "application/atom+xml")) # send request
+      response = httr::GET(request, add_headers(accept = if (json) "application/json;odata=verbose" else "application/atom+xml"), httr::set_cookies(rtFa = con$Cookie$rtFa, FedAuth = con$Cookie$FedAuth)) # send request
     } else if (tolower(verb) == "post") {
       digest = sp_getRequestDigest(con)
-      response = httr::POST(request, httr::add_headers(Cookie = con$Cookie, Accept = "application/json;odata=verbose", "X-RequestDigest" = digest,
+      response = httr::POST(request, httr::add_headers(Accept = "application/json;odata=verbose", "X-RequestDigest" = digest,
                                                        "Content-Type" = "application/json;odata=verbose"),
+                            httr::set_cookies(rtFa = con$Cookie$rtFa, FedAuth = con$Cookie$FedAuth),
                             body = as.character(toJSON(body), auto_unbox = T))
     } else {
       stop("Unknown verb.")
