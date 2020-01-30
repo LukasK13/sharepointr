@@ -100,9 +100,12 @@ sp_readListData <- function(con, listName = NULL, listID = NULL, expand = F) {
           cols = names(if (con$Office365) response$content$value else response$content$d$results)[which(unname(unlist(lapply(if (con$Office365) response$content$value else response$content$d$results, typeof))) == "character")]
           cols = columnNamesInternal[columnNamesInternal %in% cols]
           data_temp = as.data.frame(if (con$Office365) response$content$value[cols] else response$content$d$results[cols])
-          colnames(data_temp) = columnNames[columnNamesInternal %in% colnames(data_temp)]
+          colnames(data_temp) = make.names(columnNames[columnNamesInternal %in% colnames(data_temp)])
         }
-        data = rbind(data, data_temp)
+        data = rbind(
+          data.frame(c(data, sapply(colnames(data_temp)[!colnames(data_temp) %in% colnames(data)], function(x) NA))),
+          data.frame(c(data_temp, sapply(colnames(data)[!colnames(data) %in% colnames(data_temp)], function(x) NA)))
+        )
         if (!is.null(if(con$Office365) response$content$odata.nextLink else response$content$d$`__next`)) {
           response = sp_request(con, if(con$Office365) response$content$odata.nextLink else response$content$d$`__next`)
           if (response$status_code != 200) stop("Invalid response.")
