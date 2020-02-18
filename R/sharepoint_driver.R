@@ -46,6 +46,7 @@ sp_connection <- function(Address, Username = NULL, Password = NULL, credentialF
     response = httr::POST(url = "https://login.microsoftonline.com/extSTS.srf", body = request) # request security token from microsoft online
     if (response$status_code != 200) stop("Receiving security token failed.") # Check if request was successful
     content = as_list(read_xml(rawToChar(response$content))) # decode response content
+    if (!is.null(content$Envelope$Body$Fault)) stop(content$Envelope$Body$Fault$Reason$Text[[1]]) # Stop on failure
     token = as.character(content$Envelope$Body$RequestSecurityTokenResponse$RequestedSecurityToken$BinarySecurityToken) # extract security token
     response = httr::POST(paste0("https://", Address_base, "/_forms/default.aspx?wa=wsignin1.0"), body = token, httr::add_headers(Host = Address_base)) # post security token to sharepoint online
     if (response$status_code != 200) stop("Receiving access cookies failed.") # Check if request was successful
@@ -85,7 +86,7 @@ sp_request <- function(con, request, verb = "GET", json = T, body = NULL) {
   request = URLencode(if (length(grep(con$Address, request)) == 1) request else paste0(con$Address, request)) # create valid rquest url and encode it
   if (con$Office365) { # request data from SharePoint online
     if (tolower(verb) == "get") {
-      response = httr::GET(request, add_headers(accept = if (json) "application/json;odata=verbose" else "application/atom+xml"), httr::set_cookies(rtFa = con$Cookie$rtFa, FedAuth = con$Cookie$FedAuth)) # send request
+      response = httr::GET(request, httr::add_headers(accept = if (json) "application/json;odata=verbose" else "application/atom+xml"), httr::set_cookies(rtFa = con$Cookie$rtFa, FedAuth = con$Cookie$FedAuth)) # send request
     } else if (tolower(verb) == "post") {
       digest = sp_getRequestDigest(con)
       response = httr::POST(request, httr::add_headers(Accept = "application/json;odata=verbose", "X-RequestDigest" = digest,
