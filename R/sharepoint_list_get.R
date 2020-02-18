@@ -17,7 +17,7 @@ sp_getLists <- function(con, raw = F) {
     return(response)
   }
 
-  names = sp_changeEscaping(if (con$Office365) response$content$value$Title else response$content$d$results$Title)
+  names = unname(unlist(lapply(sp_changeEscaping(if (con$Office365) response$content$value$Title else response$content$d$results$Title), URLdecode)))
   ids = sp_changeEscaping(if (con$Office365) response$content$value$Id else response$content$d$results$Id)
   names(ids) = names
   return(ids)
