@@ -27,6 +27,7 @@
 #' @examples
 #' sp_con = sp_connection("https://yourdomain.sharepoint.com", "YourUsername", "YourPassword", Office365 = T)
 #' @export
+#' @import yaml rstudioapi keyring
 sp_connection <- function(Address, Username = NULL, Password = NULL, credentialFile = NULL, Office365 = T, acceptLanguage = "en") {
     if (is.null(credentialFile)) { # No credential file is given
         # Last chance to enter Username
@@ -102,7 +103,7 @@ sp_connection <- function(Address, Username = NULL, Password = NULL, credentialF
   #' sp_con = sp_connection("https://yourdomain.sharepoint.com", "YourUsername", "YourPassword", Office365 = T)
   #' lists = sp_request(sp_con, "lists", verb = "GET", json = T, body = NULL)
   #' @export
-  #' @import xml2 httr
+  #' @import xml2 httr jsonlite
   sp_request <- function(con, request, verb = "GET", json = T, body = NULL) {
     if (!"sp_connection" %in% class(con)) stop("Invalid sharepoint connection.") # Check class of connection object
     request = URLencode(if (length(grep(con$Address, request)) == 1) request else paste0(con$Address, request)) # create valid rquest url and encode it
