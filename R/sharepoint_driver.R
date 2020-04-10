@@ -45,7 +45,7 @@ sp_connection <- function(Address, Username = NULL, Password = NULL, credentialF
     request = gsub("\\{Address\\}", Address_base, request) # paste address into XML form
     response = httr::POST(url = "https://login.microsoftonline.com/extSTS.srf", body = request) # request security token from microsoft online
     if (response$status_code != 200) stop("Receiving security token failed.") # Check if request was successful
-    content = as_list(read_xml(rawToChar(response$content))) # decode response content
+    content = as_list(xml2::read_xml(rawToChar(response$content))) # decode response content
     if (!is.null(content$Envelope$Body$Fault)) stop(content$Envelope$Body$Fault$Reason$Text[[1]]) # Stop on failure
     token = as.character(content$Envelope$Body$RequestSecurityTokenResponse$RequestedSecurityToken$BinarySecurityToken) # extract security token
     response = httr::POST(paste0("https://", Address_base, "/_forms/default.aspx?wa=wsignin1.0"), body = token, httr::add_headers(Host = Address_base)) # post security token to sharepoint online
@@ -92,7 +92,7 @@ sp_request <- function(con, request, verb = "GET", json = T, body = NULL) {
       response = httr::POST(request, httr::add_headers(Accept = "application/json;odata=verbose", "X-RequestDigest" = digest,
                                                        "Content-Type" = "application/json;odata=verbose"),
                             httr::set_cookies(rtFa = con$Cookie$rtFa, FedAuth = con$Cookie$FedAuth),
-                            body = as.character(toJSON(body), auto_unbox = T))
+                            body = as.character(jsonlite::toJSON(body), auto_unbox = T))
     } else {
       stop("Unknown verb.")
     }
@@ -105,11 +105,11 @@ sp_request <- function(con, request, verb = "GET", json = T, body = NULL) {
         digest = sp_getRequestDigest(con)
         response = httr::POST(request, httr::authenticate(con$Username, con$Password, "ntlm"),
                               httr::add_headers(Accept = "application/json;odata=verbose", "X-RequestDigest" = digest, "Content-Type" = "application/json;odata=verbose"),
-                              body = as.character(toJSON(body, auto_unbox = T)))
+                              body = as.character(jsonlite::toJSON(body, auto_unbox = T)))
       } else {
         response = httr::POST(request, httr::authenticate(con$Username, con$Password, "ntlm"),
                               httr::add_headers(Accept = "application/json;odata=verbose", "Content-Type" = "application/json;odata=verbose"),
-                              body = as.character(toJSON(body, auto_unbox = T)))
+                              body = as.character(jsonlite::toJSON(body, auto_unbox = T)))
       }
     } else {
       stop("Unknown verb.")
@@ -120,7 +120,7 @@ sp_request <- function(con, request, verb = "GET", json = T, body = NULL) {
     if (!jsonlite::validate(rawToChar(response$content))) { # response doesn't contains valid JSON
       stop("Request didn't return valid JSON.") # stop with error message
     }
-    response$content = fromJSON(rawToChar(response$content)) # convert response content to R list
+    response$content = jsonlite::fromJSON(rawToChar(response$content)) # convert response content to R list
   } else {
     response$content = xml2::as_list(xml2::read_xml(rawToChar(response$content))) # convert response content to R list
   }
