@@ -80,6 +80,7 @@ sp_readListData <- function(con, listName = NULL, listID = NULL, expand = F) {
   if (response$status_code == 200) {
     columnNamesInternal = if (con$Office365) response$content$value$InternalName[!response$content$value$FromBaseType | response$content$value$InternalName == "Title"] else response$content$d$results$InternalName
     columnNames = if (con$Office365) response$content$value$Title[!response$content$value$FromBaseType | response$content$value$InternalName == "Title"] else response$content$d$results$Title
+    types = if (con$Office365) response$content$value$TypeAsString[!response$content$value$FromBaseType | response$content$value$InternalName == "Title"] else response$content$d$results$TypeAsString
     response = sp_request(con, URLencode(paste0("lists/", if (!is.null(listName)) paste0("getbytitle('", listName) else paste0("getbyid('", listID), "')/items")))
     if (response$status_code == 200) {
       data = data.frame()
@@ -99,8 +100,9 @@ sp_readListData <- function(con, listName = NULL, listID = NULL, expand = F) {
         } else {
           data_temp = as.data.frame(if (con$Office365) response$content$value else response$content$d$results)
           colnames(data_temp) = gsub("^OData_", "", colnames(data_temp))
-          data_temp = data_temp[, columnNamesInternal]
-          colnames(data_temp) = make.names(columnNames[columnNamesInternal %in% colnames(data_temp)])
+          columnNamesInternal_temp = paste0(columnNamesInternal, ifelse(types == "User", "Id", ""))
+          data_temp = data_temp[, columnNamesInternal_temp]
+          colnames(data_temp) = make.names(columnNames[columnNamesInternal_temp %in% colnames(data_temp)])
         }
         data = if (nrow(data) == 0) data_temp else rbind(
           data.frame(c(data, sapply(colnames(data_temp)[!colnames(data_temp) %in% colnames(data)], function(x) NA))),
