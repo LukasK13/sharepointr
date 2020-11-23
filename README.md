@@ -1,3 +1,6 @@
+# Help Wanted
+Unfortunately I have no more access to a SharePoint license and am therefore unable to implement new features or fix bugs. I am thankful for pull requests of any kind.
+
 # sharepointr
 A R package for reading from and writing to SharePoint lists.
 
