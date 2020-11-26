@@ -104,9 +104,9 @@ sp_readListData <- function(con, listName = NULL, listID = NULL, expand = F) {
           data_temp = data_temp[, columnNamesInternal_temp]
           colnames(data_temp) = make.names(columnNames[columnNamesInternal_temp %in% colnames(data_temp)])
         }
-        data = if (nrow(data) == 0) data_temp else rbind(
-          data.frame(c(data, sapply(colnames(data_temp)[!colnames(data_temp) %in% colnames(data)], function(x) NA))),
-          data.frame(c(data_temp, sapply(colnames(data)[!colnames(data) %in% colnames(data_temp)], function(x) NA)))
+        data = if (nrow(data) == 0) data.frame(data_temp) else rbind(
+          data.frame(c(data, sapply(colnames(data_temp)[!make.names(colnames(data_temp)) %in% colnames(data)], function(x) NA))),
+          data.frame(c(data_temp, sapply(colnames(data)[!colnames(data) %in% make.names(colnames(data_temp))], function(x) NA)))
         )
         if (!is.null(if(con$Office365) response$content$odata.nextLink else response$content$d$`__next`)) {
           response = sp_request(con, if(con$Office365) response$content$odata.nextLink else response$content$d$`__next`)
