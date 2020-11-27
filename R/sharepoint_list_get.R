@@ -115,6 +115,7 @@ sp_readListData <- function(con, listName = NULL, listID = NULL, expand = F) {
           break
         }
       })
+      colnames(data) <- columnNames[make.names(columnNames) %in% colnames(data)]
       return(data)
     }
   }
