@@ -50,7 +50,7 @@ The pipeline toos for reading from a SharePoint list are inspired by the amazing
 Therefore, the syntax is similar to the syntax of dplyr.
 ```
 sp_con = sp_connection("https://your.sharepoint.server/subpage1/", "YourUsername", "YourPassword", Office365 = F)
-sp_list = sp_list(sp_con, "yourList") %>% sp_filter(yourColumn1 = "yourValue") %>% sp_select(yourColumn2) %>% sp_arrange(yourColumn2) %>% sp_collect()
+sp_list = sp_list(sp_con, "yourList") %>% sp_filter(yourColumn1 == "yourValue") %>% sp_select(yourColumn2) %>% sp_arrange(yourColumn2) %>% sp_collect()
 ```
 
 ### Read user information
