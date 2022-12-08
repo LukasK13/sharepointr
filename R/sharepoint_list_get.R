@@ -99,7 +99,7 @@ sp_readListData <- function(con, listName = NULL, listID = NULL, expand = F, hid
           }))
         } else {
           data_temp = as.data.frame(if (con$Office365) response$content$value else response$content$d$results)
-          if (hidden = F) {
+          if (hidden == F) {
             colnames(data_temp) = gsub("^OData_", "", colnames(data_temp))
             columnNamesInternal_temp = paste0(columnNamesInternal, ifelse(types == "User", "Id", ""))
             data_temp = data_temp[, columnNamesInternal_temp]
