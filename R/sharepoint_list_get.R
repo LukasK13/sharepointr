@@ -74,9 +74,9 @@ sp_getListColumns <- function(con, listName = NULL, listID = NULL, raw = F, hidd
 #' @param expand Retrieve data by using deferred tags
 #' (takes longer, but lists more results)
 #' @export
-sp_readListData <- function(con, listName = NULL, listID = NULL, expand = F) {
+sp_readListData <- function(con, listName = NULL, listID = NULL, expand = F, hidden = F) {
   if ((is.null(listName) && is.null(listID)) || (!is.null(listName) && !is.null(listID))) stop("Either listName or listID must be provided")
-  response = sp_getListColumns(con, listName = listName, listID = listID, raw = T, hidden = F)
+  response = sp_getListColumns(con, listName = listName, listID = listID, raw = T, hidden = hidden)
   if (response$status_code == 200) {
     columnNamesInternal = if (con$Office365) response$content$value$InternalName[!response$content$value$FromBaseType | response$content$value$InternalName == "Title"] else response$content$d$results$InternalName
     columnNames = if (con$Office365) response$content$value$Title[!response$content$value$FromBaseType | response$content$value$InternalName == "Title"] else response$content$d$results$Title
@@ -99,10 +99,14 @@ sp_readListData <- function(con, listName = NULL, listID = NULL, expand = F) {
           }))
         } else {
           data_temp = as.data.frame(if (con$Office365) response$content$value else response$content$d$results)
-          colnames(data_temp) = gsub("^OData_", "", colnames(data_temp))
-          columnNamesInternal_temp = paste0(columnNamesInternal, ifelse(types == "User", "Id", ""))
-          data_temp = data_temp[, columnNamesInternal_temp]
-          colnames(data_temp) = make.names(columnNames[columnNamesInternal_temp %in% colnames(data_temp)])
+          if (hidden = F) {
+            colnames(data_temp) = gsub("^OData_", "", colnames(data_temp))
+            columnNamesInternal_temp = paste0(columnNamesInternal, ifelse(types == "User", "Id", ""))
+            data_temp = data_temp[, columnNamesInternal_temp]
+            colnames(data_temp) = make.names(columnNames[columnNamesInternal_temp %in% colnames(data_temp)])
+          } else {
+              return(data_temp)
+              }
         }
         data = if (nrow(data) == 0) data.frame(data_temp) else rbind(
           data.frame(c(data, sapply(colnames(data_temp)[!make.names(colnames(data_temp)) %in% colnames(data)], function(x) NA))),
